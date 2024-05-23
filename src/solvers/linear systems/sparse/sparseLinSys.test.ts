@@ -339,7 +339,7 @@ describe('Incomplete LL', () => {
         rhs: new Vector([-20, -43, 192]),
         incompleteSolution: new Vector([1, 2, 3])
     });
-    test.each(testData)("Test #%", (testCase: TestCaseLL) => {
+    test.each(testData)("Test %#", (testCase: TestCaseLL) => {
         let matrixCSR = SparseMatrixCSR.fromDense(testCase.matrix, 0);
         let solver = new IncompleteLL(matrixCSR);
         expect(solver.L).not.toBeNull();

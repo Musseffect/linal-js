@@ -816,11 +816,11 @@ describe.skip('Triangulization', () => {
         0, 0, 0, 0,
         0, 0, 0, 0,
         5, 6, 7, 8], 4, 4)];
-    describe.each(data)("Square #%", (matrix: Matrix) => {
+    describe.each(data)("Square %#", (matrix: Matrix) => {
         interface Method {
             method: ZeroingMethod, name: String
         };
-        describe.each([{ method: ZeroingMethod.Givens, name: "Givens" }, { method: ZeroingMethod.Housholder, name: "Housholder" }])("Zeroing method #%",
+        describe.each([{ method: ZeroingMethod.Givens, name: "Givens" }, { method: ZeroingMethod.Housholder, name: "Housholder" }])("Zeroing method %#",
             (method: Method) => {
                 test("QR", () => {
                     let decomposition = new OrthogonalDecomposition(matrix, method.method, false, OrthogonalDecompositionType.QR);

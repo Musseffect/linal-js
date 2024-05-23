@@ -81,7 +81,6 @@ export function calcEigenvalues(A: Matrix, numIters: number, tolerance: number):
             }
         }
     }
-    //console.log(`Hessenberg ${A.toString()}`);
     // A = makeHessenberg(A);
 
     for (let i = 0; i < u.size() - 2; i++) {
@@ -219,10 +218,14 @@ export class SymmetricEigendecomposition {
             makeTridiagonalInplace(T, Q);
             Q.transposeInPlace();
         }
+        // todo (NI): use bidiagonal represenation
         // symmetric matrices have only real eigenvalues so single shift algorithm can be used
 
         let activeMatrixSize = A.numRows() - 1;
-        for (let it = 0; it < numIters && activeMatrixSize > 0; ++it) {
+        let firstIdx = 0;
+        while (firstIdx + 1 < activeMatrixSize && Math.abs(T.get(firstIdx, firstIdx)) < this.tolerance && Math.abs(T.get(firstIdx + 1, firstIdx)) < this.tolerance)
+            firstIdx++;
+        for (let it = 0; it < numIters && activeMatrixSize > firstIdx; ++it) {
             const p = activeMatrixSize;
             const q = p - 1;
             let ap = T.get(p, p);
@@ -233,9 +236,12 @@ export class SymmetricEigendecomposition {
                 s = ap - Math.abs(bp);
             else
                 s = ap - bp * bp / (d + Math.sign(d) * Math.sqrt(d * d + bp * bp));
-            let x = T.get(0, 0) - s;
-            let y = T.get(1, 0);
-            for (let k = 0; k <= q; ++k) {
+            const t00 = T.get(firstIdx, firstIdx);
+            const t11 = T.get(firstIdx + 1, firstIdx + 1);
+            const t10 = T.get(firstIdx + 1, firstIdx);
+            let x = t00 - s;
+            let y = t10;
+            for (let k = firstIdx; k <= q; ++k) {
                 let c: number = 0;
                 let s: number = 0;
                 if (activeMatrixSize > 1) {
@@ -244,7 +250,7 @@ export class SymmetricEigendecomposition {
                     s = givensCoeffs.s;
                 } else {
                     // jacobi
-                    let jacobi = jacobiRotation(T.get(0, 0), T.get(1, 1), y);
+                    let jacobi = jacobiRotation(t00, t11, y);
                     c = jacobi.c;
                     s = jacobi.s;
                 }
@@ -255,7 +261,7 @@ export class SymmetricEigendecomposition {
                 T.set(k + 1, k + 1, T.get(k + 1, k + 1) + z);
                 T.set(k + 1, k, t * c * s + (c * c - s * s) * T.get(k + 1, k));
                 x = T.get(k + 1, k);
-                if (k > 0)
+                if (k > firstIdx)
                     T.set(k, k - 1, w);
                 if (k < q) {
                     y = -s * T.get(k + 2, k + 1);
@@ -276,7 +282,7 @@ export class SymmetricEigendecomposition {
             if (Math.abs(bp) < this.tolerance * (Math.abs(ap) + Math.abs(aq)))
                 --activeMatrixSize;
         }
-        if (activeMatrixSize > 0) return;
+        if (activeMatrixSize > firstIdx) return;
         this.q = Q;
         this.d = T.diag();
     }
@@ -306,14 +312,17 @@ export class RealSchurDecomposition {
             this.q.transposeInPlace();
         }
         let activeMatrixSize = A.numRows();
-        for (let it = 0; it < numIters && activeMatrixSize > 2; ++it) {
+        let firstIdx = 0;
+        while (firstIdx + 1 < activeMatrixSize && Math.abs(this.d.get(firstIdx, firstIdx)) < this.tolerance && Math.abs(this.d.get(firstIdx + 1, firstIdx)))
+            firstIdx++;
+        for (let it = 0; it < numIters && activeMatrixSize > 2 + firstIdx; ++it) {
             const p = activeMatrixSize;
             const q = activeMatrixSize - 1;
             let s = this.d.get(q - 1, q - 1) + this.d.get(p - 1, p - 1);
             let t = this.d.get(q - 1, q - 1) * this.d.get(p - 1, p - 1) - this.d.get(p - 1, q - 1) * this.d.get(q - 1, p - 1);
-            let x = this.d.get(0, 0) * this.d.get(0, 0) + this.d.get(0, 1) * this.d.get(1, 0) - s * this.d.get(0, 0) + t;
-            let y = this.d.get(1, 0) * (this.d.get(0, 0) + this.d.get(1, 1) - s);
-            let z = this.d.get(1, 0) * this.d.get(2, 1);
+            let x = this.d.get(firstIdx, firstIdx) * this.d.get(firstIdx, firstIdx) + this.d.get(firstIdx, 1) * this.d.get(firstIdx + 1, firstIdx) - s * this.d.get(firstIdx, firstIdx) + t;
+            let y = this.d.get(firstIdx + 1, firstIdx) * (this.d.get(firstIdx, firstIdx) + this.d.get(firstIdx + 1, firstIdx + 1) - s);
+            let z = this.d.get(firstIdx + 1, firstIdx) * this.d.get(firstIdx + 2, firstIdx + 1);
             for (let k = 0; k <= p - 3; k++) {
                 let r = Math.max(1, k);
                 let v = new Vector([x, y, z]);
@@ -422,33 +431,36 @@ export class RealSchurDecomposition {
                 activeMatrixSize = q - 1;
             }
         }
-        //console.log(activeMatrixSize);
         //if (activeMatrixSize > 2) throw new Error("Not converged");
     }
     public factorize(A: Matrix, numIters: number = 10) {
         assert(A.isSquare(), "A should be square");
-        this.d = A.clone();
-        this.q = Matrix.identity(A.numCols());
+        this.d = null;
+        this.q = null;
+        let d = A.clone();
+        let qMat = Matrix.identity(A.numCols());
         if (A.numCols() < 3) return;
-        if (!this.d.isHessenberg(true, SmallestTolerance)) {
-            makeHessenbergInplace(this.d, this.q);
-            this.q.transposeInPlace();
+        if (!d.isHessenberg(true, SmallestTolerance)) {
+            makeHessenbergInplace(d, qMat);
+            qMat.transposeInPlace();
         }
-        //console.log(this.d.toString());
         let it = 0;
         let activeMatrixSize = A.numRows() - 1;
-        for (it = 0; it < numIters && activeMatrixSize > 1; ++it) {
+        let firstIdx = 0;
+        while (firstIdx < activeMatrixSize && Math.abs(d.get(firstIdx, firstIdx)) < this.tolerance && Math.abs(d.get(firstIdx + 1, firstIdx)) < this.tolerance)
+            firstIdx++;
+        for (it = 0; it < numIters && activeMatrixSize > 1 + firstIdx; ++it) {
             const p = activeMatrixSize;
             const q = activeMatrixSize - 1;
             let s = 0;
             let t = 0;
-            let hpp = this.d.get(p, p);
-            let hqq = this.d.get(q, q);
-            let hpqhqp = this.d.get(p, q) * this.d.get(q, p);
+            let hpp = d.get(p, p);
+            let hqq = d.get(q, q);
+            let hpqhqp = d.get(p, q) * d.get(q, p);
             if ((it % 10) == 0) {
                 const COEFF1 = 0.75;
                 const COEFF2 = -0.4375;
-                const s = this.d.get(p, q) + this.d.get(q, q - 1);
+                const s = d.get(p, q) + d.get(q, q - 1);
                 hpp = hpp + COEFF1 * s;
                 hqq = hpp;
                 hpqhqp = COEFF2 * s * s;
@@ -471,11 +483,17 @@ export class RealSchurDecomposition {
             s = hqq + hpp;
             t = hqq * hpp - hpqhqp;
 
-            let x = this.d.get(0, 0) * this.d.get(0, 0) + this.d.get(0, 1) * this.d.get(1, 0) - s * this.d.get(0, 0) + t;
-            let y = this.d.get(1, 0) * (this.d.get(0, 0) + this.d.get(1, 1) - s);
-            let z = this.d.get(1, 0) * this.d.get(2, 1);
-            for (let k = 0; k <= p - 2; k++) {
-                let r = Math.max(0, k - 1);
+            const d00 = d.get(firstIdx, firstIdx);
+            const d10 = d.get(firstIdx + 1, firstIdx);
+            const d01 = d.get(firstIdx, firstIdx + 1);
+            const d11 = d.get(firstIdx + 1, firstIdx + 1);
+            const d21 = d.get(firstIdx + 2, firstIdx + 1);
+
+            let x = d00 * d00 + d01 * d10 - s * d00 + t;
+            let y = d10 * (d00 + d11 - s);
+            let z = d10 * d21;
+            for (let k = firstIdx; k <= p - 2; k++) {
+                let r = Math.max(0, k - 1 - firstIdx) + firstIdx;
                 let v = new Vector([x, y, z]);
                 let ro = -Math.sign(x);
                 v.set(0, v.get(0) - ro * v.l2Norm());
@@ -510,13 +528,13 @@ export class RealSchurDecomposition {
                 // apply householder reflection from the left PT * H
                 // todo (NI): change applyHouseholderFromRight to have starting index and replace this code block with function call
                 // applyHouseholderFromLeft(v, d, k, r);
-                for (let col = r; col < this.d.numCols(); ++col) {
+                for (let col = r; col < d.numCols(); ++col) {
                     let vDotX = 0.0;
                     for (let row = k; row < k + v.size(); ++row)
-                        vDotX += v.get(row - k) * this.d.get(row, col);
+                        vDotX += v.get(row - k) * d.get(row, col);
                     vDotX *= 2;
                     for (let row = k; row < k + v.size(); ++row)
-                        this.d.set(row, col, this.d.get(row, col) - v.get(row - k) * vDotX);
+                        d.set(row, col, d.get(row, col) - v.get(row - k) * vDotX);
                 }
                 r = Math.min(k + 3, p);
                 // apply householder from the right side H * P
@@ -524,54 +542,54 @@ export class RealSchurDecomposition {
                 for (let row = 0; row <= r; ++row) {
                     let vDotX = 0.0;
                     for (let col = k; col < k + v.size(); ++col)
-                        vDotX += v.get(col - k) * this.d.get(row, col);
+                        vDotX += v.get(col - k) * d.get(row, col);
                     vDotX *= 2;
                     for (let col = k; col < k + v.size(); ++col)
-                        this.d.set(row, col, this.d.get(row, col) - v.get(col - k) * vDotX);
+                        d.set(row, col, d.get(row, col) - v.get(col - k) * vDotX);
                 }
 
                 // update Q from the right
-                for (let row = 0; row < this.Q.numRows(); ++row) {
+                for (let row = 0; row < qMat.numRows(); ++row) {
                     let vDotX = 0.0;
                     for (let col = k; col < k + v.size(); ++col)
-                        vDotX += v.get(col - k) * this.q.get(row, col);
+                        vDotX += v.get(col - k) * qMat.get(row, col);
                     vDotX *= 2;
                     for (let col = k; col < k + v.size(); ++col)
-                        this.q.set(row, col, this.q.get(row, col) - v.get(col - k) * vDotX);
+                        qMat.set(row, col, qMat.get(row, col) - v.get(col - k) * vDotX);
                 }
 
-                x = this.d.get(k + 1, k);
-                y = this.d.get(k + 2, k);
+                x = d.get(k + 1, k);
+                y = d.get(k + 2, k);
                 if (k < p - 2)
-                    z = this.d.get(k + 3, k);
+                    z = d.get(k + 3, k);
             }
             // Givens rotations
             if (true) {
                 let { c, s, r } = givens(x, y);
 
                 for (let i = q - 1; i < A.numCols(); ++i) {
-                    let d1 = this.d.get(q, i);
-                    let d2 = this.d.get(p, i);
+                    let d1 = d.get(q, i);
+                    let d2 = d.get(p, i);
                     let d1New = d1 * c - d2 * s;
                     let d2New = d1 * s + d2 * c;
-                    this.d.set(q, i, d1New);
-                    this.d.set(p, i, d2New);
+                    d.set(q, i, d1New);
+                    d.set(p, i, d2New);
                 }
                 for (let i = 0; i < A.numRows(); ++i) {
-                    let d1 = this.d.get(i, q);
-                    let d2 = this.d.get(i, p);
+                    let d1 = d.get(i, q);
+                    let d2 = d.get(i, p);
                     let d1New = d1 * c - d2 * s;
                     let d2New = d1 * s + d2 * c;
-                    this.d.set(i, q, d1New);
-                    this.d.set(i, p, d2New);
+                    d.set(i, q, d1New);
+                    d.set(i, p, d2New);
                 }
                 for (let i = 0; i < A.numRows(); ++i) {
-                    let q1 = this.q.get(i, q);
-                    let q2 = this.q.get(i, p);
+                    let q1 = qMat.get(i, q);
+                    let q2 = qMat.get(i, p);
                     let q1New = q1 * c - q2 * s;
                     let q2New = q1 * s + q2 * c;
-                    this.q.set(i, q, q1New);
-                    this.q.set(i, p, q2New);
+                    qMat.set(i, q, q1New);
+                    qMat.set(i, p, q2New);
                 }
             } else {
                 let v = new Vector([x, y]);
@@ -579,43 +597,44 @@ export class RealSchurDecomposition {
                 v.set(0, v.get(0) - ro * v.l2Norm());
                 v.normalize();
                 // from the left
-                for (let col = p - 2; col < this.d.numCols(); ++col) {
+                for (let col = p - 2; col < d.numCols(); ++col) {
                     let vDotX = 0.0;
                     for (let row = q; row < q + v.size(); ++row)
-                        vDotX += v.get(row - q) * this.d.get(row, col);
+                        vDotX += v.get(row - q) * d.get(row, col);
                     vDotX *= 2;
                     for (let row = q; row < q + v.size(); ++row)
-                        this.d.set(row, col, this.d.get(row, col) - v.get(row - q) * vDotX);
+                        d.set(row, col, d.get(row, col) - v.get(row - q) * vDotX);
                 }
                 // from the right
                 for (let row = 0; row <= p; ++row) {
                     let vDotX = 0.0;
                     for (let col = q; col < q + v.size(); ++col)
-                        vDotX += v.get(col - q) * this.d.get(row, col);
+                        vDotX += v.get(col - q) * d.get(row, col);
                     vDotX *= 2;
                     for (let col = q; col < q + v.size(); ++col)
-                        this.d.set(row, col, this.d.get(row, col) - v.get(col - q) * vDotX);
+                        d.set(row, col, d.get(row, col) - v.get(col - q) * vDotX);
                 }
                 // update Q from the right
-                for (let row = 0; row < this.Q.numRows(); ++row) {
+                for (let row = 0; row < qMat.numRows(); ++row) {
                     let vDotX = 0.0;
                     for (let col = q; col < q + v.size(); ++col)
-                        vDotX += v.get(col - q) * this.q.get(row, col);
+                        vDotX += v.get(col - q) * qMat.get(row, col);
                     vDotX *= 2;
                     for (let col = q; col < q + v.size(); ++col)
-                        this.q.set(row, col, this.q.get(row, col) - v.get(col - q) * vDotX);
+                        qMat.set(row, col, qMat.get(row, col) - v.get(col - q) * vDotX);
                 }
             }
-            //console.log(this.d.toString());
-            if (Math.abs(this.d.get(p, q)) < this.tolerance * (Math.abs(this.d.get(q, q)) + Math.abs(this.d.get(p, p)))) {
-                this.d.set(p, q, 0);
+            if (Math.abs(d.get(p, q)) < this.tolerance * (Math.abs(d.get(q, q)) + Math.abs(d.get(p, p)))) {
+                d.set(p, q, 0);
                 activeMatrixSize = q;
-            } else if (Math.abs(this.d.get(q, q - 1)) < this.tolerance * (Math.abs(this.d.get(q - 1, q - 1)) + Math.abs(this.d.get(q, q)))) {
-                this.d.set(q, q - 1, 0);
+            } else if (Math.abs(d.get(q, q - 1)) < this.tolerance * (Math.abs(d.get(q - 1, q - 1)) + Math.abs(d.get(q, q)))) {
+                d.set(q, q - 1, 0);
                 activeMatrixSize = q - 1;
             }
         }
-        // console.log(`${activeMatrixSize <= 1 ? "Converged" : "Didn't converge"} Iter ${it}, matrix size ${activeMatrixSize}`);
+        if (activeMatrixSize > firstIdx + 1) return;
+        this.d = d;
+        this.q = qMat;
     }
     public get D(): Matrix {
         return this.d;

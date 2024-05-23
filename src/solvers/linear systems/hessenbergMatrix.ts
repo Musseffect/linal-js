@@ -17,6 +17,7 @@ export function makeTridiagonalInplace(A: Matrix, Q?: Matrix): Matrix {
         let ro = -sign(firstElement);
         // first element of the column is alpha, elements below are zero 
         let alpha = ro * xNorm;
+        if (alpha == 0) continue;
         u.set(0, firstElement - alpha);
         u.scaleSelf(1.0 / Math.sqrt(xNormSqr - firstElement * firstElement + u.get(0) * u.get(0)));
         // premultiply all rows
@@ -74,6 +75,7 @@ export function makeTridiagonalInplaceAlt(A: Matrix, Q?: Matrix): Matrix {
         let ro = -sign(firstElement);
         // first element of the column is alpha, elements below are zero 
         let alpha = ro * xNorm;
+        if (alpha == 0) continue;
         let newFirstElement = firstElement - alpha;
         A.set(outerCol, shift, firstElement - alpha);
         let newLength = Math.sqrt(xNormSqr - firstElement * firstElement + newFirstElement * newFirstElement);
@@ -279,6 +281,7 @@ export function makeHessenbergInplace(A: Matrix, Q?: Matrix): Matrix {
         let ro = -sign(firstElement);
         // first element of the column is alpha, elements below are zero 
         let alpha = ro * xNorm;
+        if (alpha == 0) continue;
         v.set(0, firstElement - alpha);
         v.scaleSelf(1.0 / Math.sqrt(xNormSqr - firstElement * firstElement + v.get(0) * v.get(0)));
         // premultiply all rows
