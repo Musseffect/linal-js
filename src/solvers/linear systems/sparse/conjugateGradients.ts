@@ -1,14 +1,13 @@
-import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparseMatrix";
+import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparse/sparseMatrix";
 import { assert, SmallTolerance } from "../../../utils";
-import Vector from "../../../vector";
+import Vector from "../../../dense/vector";
 import { ConvergenseFailureException } from "../exceptions";
-
-const SolverName = "'Cholesky'";
+import IncompleteLL from "./incompleteLL";
 
 export enum CGPreconditioner {
     None,
-    Diagonal
-    //, IncompleteCholesky
+    Diagonal,
+    IncompleteLL
 };
 
 interface Preconditioner {
@@ -44,7 +43,16 @@ class DiagonalPreconditioner implements Preconditioner {
     }
 }
 
-// TODO: tests
+class IncompleteLLPReconditioner implements Preconditioner {
+    factorization: IncompleteLL;
+    constructor(A: SparseMatrixCSR) {
+        this.factorization = new IncompleteLL(A);
+    }
+    calc(r: Vector): Vector {
+        return this.factorization.solve(r);
+    }
+}
+
 export class ConjugateGradients {
     A: SparseMatrixCSR;
     preconditioner: Preconditioner
@@ -56,6 +64,9 @@ export class ConjugateGradients {
                 break;
             case CGPreconditioner.Diagonal:
                 this.preconditioner = new DiagonalPreconditioner(A);
+                break;
+            case CGPreconditioner.IncompleteLL:
+                this.preconditioner = new IncompleteLLPReconditioner(A);
                 break;
             default:
                 throw Error("Unkown preconditioner");
@@ -84,7 +95,7 @@ export class ConjugateGradients {
             rDotZ = rDotZNew;
             ++iter;
         }
-        throw new ConvergenseFailureException(SolverName);
+        throw new ConvergenseFailureException("Conjugate gradients");
     }
     static solve(A: SparseMatrixCSR, b: Vector, maxIterations: number = 20, tolerance: number = SmallTolerance): Vector {
         let solver = new ConjugateGradients(A, CGPreconditioner.Diagonal);

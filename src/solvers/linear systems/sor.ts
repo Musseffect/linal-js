@@ -1,6 +1,6 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert, SmallTolerance } from "../../utils";
-import vector from "../../vector";
+import vector from "../../dense/vector";
 import { ConvergenseFailureException } from "./exceptions";
 // https://en.wikipedia.org/wiki/Successive_over-relaxation
 

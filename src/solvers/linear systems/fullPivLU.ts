@@ -1,8 +1,8 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { PermutationType, PermutationMatrix } from "../../permutationMatrix";
-import { DiagonalType, TriMatrixType, TriMatrixView } from "../../triMatrixView";
+import { TriMatrixType, TriMatrixView } from "../../dense/matrixView";
 import { assert, SmallestTolerance, SmallTolerance, swap } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { InsufficientRankException } from "./exceptions";
 
 const SolverName = "'fullPivLU'";
@@ -13,6 +13,26 @@ const SolverName = "'fullPivLU'";
  * 
  * U - upper triangular matrix
  */
+
+function findPivot(lu: Matrix, step: number, rowIdx: (i: number) => number, colIdx: (i: number) => number): { pivotValue: number, pivotRow: number, pivotColumn: number } {
+    let rank = Math.min(lu.numRows(), lu.numCols());
+    let pivotRow = step;
+    let pivotColumn = step;
+    let pivotValue = lu.get(rowIdx(pivotRow), colIdx(pivotColumn));
+    for (let row = step; row < rank; ++row) {
+        for (let column = step; column < rank; ++column) {
+            let value = lu.get(rowIdx(row), colIdx(column));
+            if (Math.abs(value) > Math.abs(pivotValue)) {
+                pivotRow = row;
+                pivotColumn = column;
+                pivotValue = value;
+            }
+        }
+    }
+    return { pivotValue, pivotRow, pivotColumn };
+}
+
+
 export default class FullPivLU {
     protected lu: Matrix = null;
     protected p: PermutationMatrix;
@@ -26,10 +46,10 @@ export default class FullPivLU {
         return this._rank;
     }
     get L(): TriMatrixView {
-        return new TriMatrixView(this.lu, TriMatrixType.lower, DiagonalType.Unit);
+        return new TriMatrixView(this.lu, TriMatrixType.lower, 1);
     }
     get U(): TriMatrixView {
-        return new TriMatrixView(this.lu, TriMatrixType.upper, DiagonalType.Zero);
+        return new TriMatrixView(this.lu, TriMatrixType.upper);
     }
     get LU(): Matrix {
         return this.lu;
@@ -59,7 +79,7 @@ export default class FullPivLU {
         this.p = PermutationMatrix.identity(this.A.numRows(), PermutationType.Row);
         this.q = PermutationMatrix.identity(this.A.numCols(), PermutationType.Col);
         let lu: Matrix = this.A.clone();
-        // todo: check for rectangular matrices
+        // todo (NI): check for rectangular matrices
         for (let step = 0; step + 1 < lu.numRows(); step++) {
             let maxPivotRow = step;
             let maxPivotColumn = step;
@@ -157,40 +177,27 @@ export default class FullPivLU {
         let rowIdx = (idx: number) => rowPermutations[idx];
         let colIdx = (idx: number) => columnPermutations[idx];
         for (let step = 0; step < rank; step++) {
-            // todo: extract this to a local function
-            let maxPivotRow = step;
-            let maxPivotColumn = step;
-            let maxPivot = LU.get(rowIdx(maxPivotRow), colIdx(maxPivotColumn));
-            for (let row = step; row < rank; ++row) {
-                for (let column = step; column < rank; ++column) {
-                    let value = LU.get(rowIdx(row), colIdx(column));
-                    if (Math.abs(value) > Math.abs(maxPivot)) {
-                        maxPivotRow = row;
-                        maxPivotColumn = column;
-                        maxPivot = value;
-                    }
-                }
-            }
-            if (Math.abs(maxPivot) < tolerance)
+            let { pivotValue, pivotRow, pivotColumn } = findPivot(LU, step, rowIdx, colIdx);
+            if (Math.abs(pivotValue) < tolerance)
                 throw new InsufficientRankException(SolverName, step);
 
-            swap(rowPermutations, step, maxPivotRow);
-            swap(columnPermutations, step, maxPivotColumn);
+            swap(rowPermutations, step, pivotRow);
+            swap(columnPermutations, step, pivotColumn);
 
-            console.log(`Step ${step}`);
-            console.log(`rowPermutations ${rowPermutations}, maxPivotRow ${maxPivotRow}`);
-            console.log(`columnPermutations ${columnPermutations}, maxPivotColumn ${maxPivotColumn}`);
+            //console.log(`Step ${step}`);
+            //console.log(`rowPermutations ${rowPermutations}, maxPivotRow ${pivotRow}`);
+            //console.log(`columnPermutations ${columnPermutations}, maxPivotColumn ${pivotColumn}`);
             let stepRowIdx = rowIdx(step);
 
-            console.log(`Initial LU ${LU.toString()}`)
+            //console.log(`Initial LU ${LU.toString()}`)
             const rowMat = new PermutationMatrix(rowPermutations, PermutationType.Row).toMatrix();
             const colMat = new PermutationMatrix(columnPermutations, PermutationType.Col).toMatrix();
-            console.log(`Initial permuted LU ${Matrix.mul(Matrix.mul(rowMat, LU), colMat).toString()}`)
-            console.log(`Initial Rhs ${Rhs.toString()}`)
-            console.log(`Initial permuted Rhs ${Matrix.mul(Matrix.mul(rowMat, Rhs), colMat).toString()}`);
+            //console.log(`Initial permuted LU ${Matrix.mul(Matrix.mul(rowMat, LU), colMat).toString()}`)
+            //console.log(`Initial Rhs ${Rhs.toString()}`)
+            //console.log(`Initial permuted Rhs ${Matrix.mul(Matrix.mul(rowMat, Rhs), colMat).toString()}`);
             for (let row = step + 1; row < rank; row++) {
                 let curRow = rowIdx(row);
-                let ratio = LU.get(curRow, colIdx(step)) / maxPivot;
+                let ratio = LU.get(curRow, colIdx(step)) / pivotValue;
                 for (let column = step + 1; column < rank; column++) {
                     let curColIdx = colIdx(column);
                     LU.set(curRow, curColIdx, LU.get(curRow, curColIdx) - ratio * LU.get(stepRowIdx, curColIdx));
@@ -200,10 +207,10 @@ export default class FullPivLU {
                 }
                 LU.set(curRow, colIdx(step), 0);
             }
-            console.log(`Result LU ${LU.toString()}`)
-            console.log(`Result permuted LU ${Matrix.mul(Matrix.mul(rowMat, LU), colMat).toString()}`)
-            console.log(`Result Rhs ${Rhs.toString()}`)
-            console.log(`Result permuted Rhs ${Matrix.mul(Matrix.mul(rowMat, Rhs), colMat).toString()}`);
+            //console.log(`Result LU ${LU.toString()}`)
+            //console.log(`Result permuted LU ${Matrix.mul(Matrix.mul(rowMat, LU), colMat).toString()}`)
+            //console.log(`Result Rhs ${Rhs.toString()}`)
+            //console.log(`Result permuted Rhs ${Matrix.mul(Matrix.mul(rowMat, Rhs), colMat).toString()}`);
         }
 
         let x = Matrix.empty(rank, Rhs.width());
@@ -219,7 +226,7 @@ export default class FullPivLU {
                 x.set(colIdx(row), bColIdx, (Rhs.get(curRowIdx, bColIdx) - k) / LU.get(curRowIdx, colIdx(row)));
             }
         }
-        console.log(`X ${x.toString()}`);
+        //console.log(`X ${x.toString()}`);
         return x;
     }
     static solve(A: Matrix, b: Vector, tolerance: number = SmallTolerance): Vector {
@@ -240,28 +247,16 @@ export default class FullPivLU {
         let rowIdx = (idx: number) => rowPermutations[idx];
         let colIdx = (idx: number) => columnPermutations[idx];
         for (let step = 0; step < rank; step++) {
-            let maxPivotRow = step;
-            let maxPivotColumn = step;
-            let maxPivot = LU.get(rowIdx(maxPivotRow), colIdx(maxPivotColumn));
-            for (let row = step; row < rank; ++row) {
-                for (let column = step; column < rank; ++column) {
-                    let value = LU.get(rowIdx(row), colIdx(column));
-                    if (Math.abs(value) > Math.abs(maxPivot)) {
-                        maxPivotRow = row;
-                        maxPivotColumn = column;
-                        maxPivot = value;
-                    }
-                }
-            }
-            if (Math.abs(maxPivot) < tolerance)
+            let { pivotValue, pivotRow, pivotColumn } = findPivot(LU, step, rowIdx, colIdx);
+            if (Math.abs(pivotValue) < tolerance)
                 throw new InsufficientRankException(SolverName, step);
 
-            swap(rowPermutations, step, maxPivotRow);
-            swap(columnPermutations, step, maxPivotColumn);
+            swap(rowPermutations, step, pivotRow);
+            swap(columnPermutations, step, pivotColumn);
 
             for (let column = step + 1; column < rank; column++)
-                LU.set(rowIdx(step), colIdx(column), LU.get(rowIdx(step), colIdx(column)) / maxPivot);
-            rhs.set(rowIdx(step), rhs.get(rowIdx(step)) / maxPivot);
+                LU.set(rowIdx(step), colIdx(column), LU.get(rowIdx(step), colIdx(column)) / pivotValue);
+            rhs.set(rowIdx(step), rhs.get(rowIdx(step)) / pivotValue);
             LU.set(rowIdx(step), colIdx(step), 1);
 
             for (let row = step + 1; row < rank; row++) {

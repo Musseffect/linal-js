@@ -1,7 +1,7 @@
-import Matrix from "../denseMatrix";
+import Matrix from "../dense/denseMatrix";
 import { backwardDifference, centralDifference, forwardDifference, secondOrderDifference } from "../numericalDifferentiation";
 import { Tolerance, SmallTolerance, SmallestTolerance } from "../utils";
-import Vector from "../vector";
+import Vector from "../dense/vector";
 
 test("Differentiation", () => {
     let testFunc =

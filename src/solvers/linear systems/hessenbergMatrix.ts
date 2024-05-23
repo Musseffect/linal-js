@@ -1,11 +1,10 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert, sign } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { applyHouseholderFromLeft } from "./hausholderReflection";
 
 // should be 4/3N^3 + O(N^2)
 export function makeTridiagonalInplace(A: Matrix, Q?: Matrix): Matrix {
-    assert(A.isSymmetric(), "A must be symmetric");
     if (Q) {
         Q.setFromMatrix(Matrix.identity(A.numRows()));
     }
@@ -196,6 +195,7 @@ function makeHessenbergInplaceWithQ(A: Matrix, Q: Matrix): Matrix {
         let ro = -sign(firstElement);
         // first element of the column is alpha, elements below are zero 
         let alpha = ro * xNorm;
+        if (alpha == 0) continue;
         let newFirstElement = firstElement - alpha;
         Q.set(shift, shift, newFirstElement);
         const factor = 1.0 / Math.sqrt(xNormSqr - firstElement * firstElement + newFirstElement * newFirstElement);
@@ -263,6 +263,7 @@ function makeHessenbergInplaceWithQ(A: Matrix, Q: Matrix): Matrix {
     return A;
 }
 
+// todo: test with nonempty Q, there is a bug in implementation
 export function makeHessenbergInplace(A: Matrix, Q?: Matrix): Matrix {
     //if (A.isSymmetric()) return makeTridiagonalInplace(A, Q);
     assert(A.isSquare(), "Non-square matrix");
@@ -284,7 +285,7 @@ export function makeHessenbergInplace(A: Matrix, Q?: Matrix): Matrix {
         // first (col + 1) rows won't change
         // set first column
         A.set(shift, outerCol, alpha);
-        // todo: rearrange this to do that in rows
+        // todo (NI): rearrange this to do that in rows
         for (let row = shift + 1; row < A.numRows(); ++row)
             A.set(row, outerCol, 0);
         // set other columns ~O(2N^2)

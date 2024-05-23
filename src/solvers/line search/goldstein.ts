@@ -1,4 +1,4 @@
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { BacktrackingLineSearch, LineSearch, LineSearchProblem } from "./lineSearch";
 
 

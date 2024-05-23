@@ -1,8 +1,11 @@
-import vec2 from "./vec2";
+import vec2 from "./dense/vec2";
 
 export class complex extends vec2 {
     constructor(x: number, y: number) {
         super(x, y);
+    }
+    static real(x: number): complex {
+        return new complex(x, 0);
     }
     static polar(r: number, theta: number): complex {
         return new complex(r * Math.cos(theta), r * Math.sin(theta));

@@ -1,5 +1,5 @@
 import { complex } from "./complex";
-import Matrix from "./denseMatrix";
+import Matrix from "./dense/denseMatrix";
 import { SmallTolerance, SmallestTolerance, assert, assertFail } from "./utils";
 
 /** 
@@ -146,7 +146,7 @@ export class PolynomialSolver {
         this.delta = delta;
     }
     // bisection + newton
-    // todo: try false position and fancy false position from matlab paper
+    // todo (NI): try false position and fancy false position method from matlab paper
     protected findRoot(f: Polynomial, df: Polynomial, xMin: number, xMax: number, fMin: number, fMax: number): number {
         assert(Math.sign(fMin) != Math.sign(fMax), "Incorrect interval");
         // handle case with both infinity bounds, it should only arise when polynomial is odd
@@ -231,7 +231,7 @@ export class PolynomialSolver {
     solveCubic(a: number, b: number, c: number, d: number, deflation: boolean = true, xStart: number = Number.NEGATIVE_INFINITY, xEnd: number = Number.POSITIVE_INFINITY): number[] {
         let f = new Polynomial([d, c, b, a]);
         let df = new Polynomial([c, 2 * b, 3 * a]);
-        let criticalPoints = PolynomialSolver.solveQuadratic(df.coeffs[0], df.coeffs[1], df.coeffs[2], xStart, xEnd);
+        let criticalPoints = PolynomialSolver.solveQuadratic(df.coeffs[2], df.coeffs[1], df.coeffs[0], xStart, xEnd);
         criticalPoints.unshift(xStart);
         criticalPoints.push(xEnd);
         let roots: number[] = [];
@@ -241,14 +241,32 @@ export class PolynomialSolver {
             let xMax = criticalPoints[i + 1];
             let fMin = Number.isFinite(xMin) ? f.eval(xMin) : this.infSign(xMin, f);
             let fMax = Number.isFinite(xMax) ? f.eval(xMax) : this.infSign(xMax, f);
+            let root: number = null;
+            if (fMax == 0) {
+                roots.push(xMax);
+                continue;
+            }
             if (Math.sign(fMin) != Math.sign(fMax)) {
-                let root = this.findRoot(f, df, xMin, xMax, fMin, fMax);
+                root = this.findRoot(f, df, xMin, xMax, fMin, fMax);
+                deflation = false;
+            }
+            else {
+                if (Math.abs(fMax) < this.tol) {
+                    root = xMax;
+                    //newRoots.push(this.refineRoot());
+                }
+                if (Math.abs(fMin) < this.tol) {
+                    root = xMin;
+                    //newRoots.push(this.refineRoot());
+                }
+            }
+            if (root != null) {
                 roots.push(root);
                 if (!deflation) continue;
                 // deflation
                 let aq = a;
                 let bq = b + aq * root;
-                let cq = d;
+                let cq = c + bq * root;
                 let otherRoots = PolynomialSolver.solveQuadratic(aq, bq, cq, xMax, xEnd);
                 roots = roots.concat(otherRoots);
                 break;
@@ -299,19 +317,31 @@ export class PolynomialSolver {
      * @param xEnd end of interval, default value: POSITIVE_INFINITY
      * @returns sorted array of real roots
      */
-    public solveInRegion(polynomial: Polynomial, xStart: number = Number.NEGATIVE_INFINITY, xEnd: number = Number.POSITIVE_INFINITY): number[] {
+    public solveInRegion(polynomial: Polynomial, solveCubic: boolean = false, xStart: number = Number.NEGATIVE_INFINITY, xEnd: number = Number.POSITIVE_INFINITY): number[] {
         assert(xStart < xEnd, "Invalid interval");
         polynomial.shrink();
         if (polynomial.degree() < 1) return [];
-        if (polynomial.degree() == 1) return PolynomialSolver.solveLinear(polynomial.coeffs[1], polynomial.coeffs[1], xStart, xEnd);
+        if (polynomial.degree() == 1) return PolynomialSolver.solveLinear(polynomial.coeffs[1], polynomial.coeffs[0], xStart, xEnd);
         let stack: Polynomial[] = [polynomial];
-        for (let i = polynomial.degree(); i > 2; --i)
-            stack.push(stack[stack.length - 1].derivative());
 
-        const quadraticPolynomial = stack[stack.length - 1];
-        assert(quadraticPolynomial.numCoeffs() == 3, "Quadratic polynomial expected");
-        // todo: use cubic solver with deflation here
-        let criticalPoints: number[] = PolynomialSolver.solveQuadratic(quadraticPolynomial.coeffs[2], quadraticPolynomial.coeffs[1], quadraticPolynomial.coeffs[0], xStart, xEnd);
+        let criticalPoints: number[] = [];
+        if (solveCubic) {
+            if (polynomial.degree() == 2) return PolynomialSolver.solveQuadratic(polynomial.coeffs[2], polynomial.coeffs[1], polynomial.coeffs[0], xStart, xEnd);
+            for (let i = polynomial.degree(); i > 3; --i)
+                stack.push(stack[stack.length - 1].derivative());
+
+            const cubicPolynomial = stack[stack.length - 1];
+            assert(cubicPolynomial.numCoeffs() == 4, "Cubic polynomial expected");
+            criticalPoints = this.solveCubic(cubicPolynomial.coeffs[3], cubicPolynomial.coeffs[2], cubicPolynomial.coeffs[1], cubicPolynomial.coeffs[0], true, xStart, xEnd);
+        } else {
+            for (let i = polynomial.degree(); i > 2; --i)
+                stack.push(stack[stack.length - 1].derivative());
+
+            const quadraticPolynomial = stack[stack.length - 1];
+            assert(quadraticPolynomial.numCoeffs() == 3, "Quadratic polynomial expected");
+            criticalPoints = PolynomialSolver.solveQuadratic(quadraticPolynomial.coeffs[2], quadraticPolynomial.coeffs[1], quadraticPolynomial.coeffs[0], xStart, xEnd);
+        }
+
         criticalPoints.unshift(xStart);
         criticalPoints.push(xEnd);
         while (stack.length != 1) {
@@ -329,7 +359,7 @@ export class PolynomialSolver {
                     let newRoot = this.findRoot(f, df, xMin, xMax, fMin, fMax);
                     newRoots.push(newRoot);
                 } else {
-                    // todo: case with multiple roots - one side of the interval will be close to the root and the comparison above may fail
+                    // todo (NI): case with multiple roots - one side of the interval will be close to the root and the comparison above may fail
                     if (Math.abs(fMax) < this.tol) {
                         newRoots.push(xMax);
                         //newRoots.push(this.refineRoot());
@@ -397,4 +427,4 @@ export function generatePolynomial(roots: number[]): Polynomial {
     return new Polynomial(coeffs);
 }
 
-// todo: RPoly and complex polynomials
+// todo (NI): RPoly and complex polynomials

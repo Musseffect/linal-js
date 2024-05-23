@@ -1,11 +1,12 @@
-import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparseMatrix";
+import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparse/sparseMatrix";
 import { assert, SmallTolerance, Tolerance } from "../../../utils";
-import Vector from "../../../vector";
+import Vector from "../../../dense/vector";
 import { ConvergenseFailureException } from "../exceptions";
 
 const SolverName = "'GaussSeidel'";
 
-// TODO: tests
+
+// todo: preconditioning - incomplete LU
 export default class GaussSeidel {
     static solve(m: SparseMatrixCSR, rhs: Vector, maxIterations: number, tolerance: number = SmallTolerance, initialGuess?: Vector): Vector {
         assert(m.width() == m.height(), "Matrix isn't square");

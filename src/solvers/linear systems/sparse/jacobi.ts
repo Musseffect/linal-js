@@ -1,11 +1,10 @@
-import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparseMatrix";
+import { SparseMatrixCSR, SparseMatrixRowIterator } from "../../../sparse/sparseMatrix";
 import { assert, SmallTolerance } from "../../../utils";
-import Vector from "../../../vector";
+import Vector from "../../../dense/vector";
 import { ConvergenseFailureException } from "../exceptions";
 
 const SolverName = "'Jacobi'";
 
-// TODO: tests
 export default class Jacobi {
     static solve(m: SparseMatrixCSR, rhs: Vector, maxIterations: number, tolerance: number = SmallTolerance, initialGuess?: Vector) {
         assert(m.width() == m.height(), "Matrix isn't square");
@@ -35,7 +34,6 @@ export default class Jacobi {
             }
             result = xNew;
             let rhsApprox = SparseMatrixCSR.postMul(m, result);
-            console.log(`Iter ${it}: ${Vector.sub(rhsApprox, rhs).lInfNorm()}`);
             if (rhsApprox.subSelf(rhs).lInfNorm() < tolerance)
                 return result;
         }

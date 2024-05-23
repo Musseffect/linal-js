@@ -1,5 +1,5 @@
 import { complex } from "../complex";
-import vec2 from "../vec2";
+import vec2 from "../dense/vec2";
 
 
 test('Complex cartesian operations', () => {
@@ -17,13 +17,4 @@ test('Complex cartesian operations', () => {
     expect(vec2.near(z1, complex.log(zExp))).toBeTruthy();
     expect(vec2.near(z1, complex.exp(zLog))).toBeTruthy();
     expect(vec2.near(z2, complex.div(complex.log(zPow), complex.log(z1)))).toBeTruthy();
-});
-
-test.skip('Complex polar operations', () => {
-
-
-});
-
-test.skip('Complex polar/cartesian operations', () => {
-
 });

@@ -1,13 +1,13 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert, SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { ConvergenseFailureException } from "./exceptions";
 
 const SolverName = "'Cholesky'";
 
 export enum CGPreconditioner {
-    None,
-    Diagonal
+    Identity,
+    Jacobi
     //, IncompleteCholesky
 };
 
@@ -21,7 +21,7 @@ class IdentityPreconditioner implements Preconditioner {
         return r;
     }
 }
-class DiagonalPreconditioner implements Preconditioner {
+class JacobiPreconditioner implements Preconditioner {
     A: Matrix;
     constructor(A: Matrix) {
         this.A = A;
@@ -40,11 +40,11 @@ export class CG {
     constructor(A: Matrix, preconditioner: CGPreconditioner) {
         assert(A.isSquare(), "Non-square matrix");
         switch (preconditioner) {
-            case CGPreconditioner.None:
+            case CGPreconditioner.Identity:
                 this.preconditioner = new IdentityPreconditioner();
                 break;
-            case CGPreconditioner.Diagonal:
-                this.preconditioner = new DiagonalPreconditioner(A);
+            case CGPreconditioner.Jacobi:
+                this.preconditioner = new JacobiPreconditioner(A);
                 break;
             default:
                 throw Error("Unkown preconditioner");
@@ -76,7 +76,7 @@ export class CG {
         throw new ConvergenseFailureException(SolverName);
     }
     static solve(A: Matrix, b: Vector, maxIterations: number = 20, tolerance: number = SmallTolerance): Vector {
-        let solver = new CG(A, CGPreconditioner.Diagonal);
+        let solver = new CG(A, CGPreconditioner.Jacobi);
         return solver.compute(b, maxIterations, tolerance);
     }
 }

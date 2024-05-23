@@ -1,6 +1,6 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { SmallestTolerance, Tolerance, assert } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { ScalarFunction } from "../common/functions";
 
 export abstract class LineSearchProblem {

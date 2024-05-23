@@ -1,4 +1,4 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert } from "../../utils";
 
 export interface givensCoeffs {
@@ -95,6 +95,7 @@ export function applyGivensFromRight(A: Matrix, givens: givensCoeffs, i: number,
         A.set(row, i, -givens.s * a + givens.c * b);
     }
 }
+
 /**
  *  Make matrix
  * 

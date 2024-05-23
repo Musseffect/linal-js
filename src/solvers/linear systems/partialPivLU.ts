@@ -1,8 +1,8 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { PermutationType, PermutationMatrix } from "../../permutationMatrix";
 import { assert, SmallestTolerance, SmallTolerance, swap } from "../../utils";
-import Vector from "../../vector";
-import { DiagonalType, TriMatrixType, TriMatrixView } from "../../triMatrixView";
+import Vector from "../../dense/vector";
+import { TriMatrixType, TriMatrixView } from "../../dense/matrixView";
 import { InsufficientRankException } from "./exceptions";
 
 const SolverName = "'PartialPivLU'";
@@ -19,10 +19,10 @@ export default class PartialPivLU {
         this.factorize(A);
     }
     get L(): TriMatrixView {
-        return new TriMatrixView(this.lu, TriMatrixType.lower, DiagonalType.Unit);
+        return new TriMatrixView(this.lu, TriMatrixType.lower, 1);
     }
     get U(): TriMatrixView {
-        return new TriMatrixView(this.lu, TriMatrixType.upper, DiagonalType.Existing);
+        return new TriMatrixView(this.lu, TriMatrixType.upper);
     }
     get LU(): Matrix {
         return this.lu;
@@ -39,7 +39,7 @@ export default class PartialPivLU {
         assert(A.isSquare(), "Non-square matrix");
         this.p = PermutationMatrix.identity(this.A.numRows(), PermutationType.Row);
         let lu: Matrix = this.A.clone();
-        // todo: check for rectangular matrices
+        // todo (NI): check for rectangular matrices
         for (let step = 0; step + 1 < lu.numRows(); step++) {
             let maxPivotRow = step;
             let maxPivot = lu.get(step, step);
@@ -62,9 +62,7 @@ export default class PartialPivLU {
                     lu.set(row, column, lu.get(row, column) - ratio * lu.get(step, column));
                 lu.set(row, step, ratio);
             }
-            //console.log(`Result LU at step ${step} ${lu.toString()}`);
         }
-        //console.log(`Result P ${this.p.toMatrix()} ${this.p.array()}`)
         this.lu = lu;
     }
     solveInplace(rhs: Matrix | Vector): Matrix | Vector {

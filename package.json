@@ -22,7 +22,8 @@
 		"watch:dev": "webpack --watch --mode development --config webpack.dev.js",
 		"bundle:package": "tsc",
 		"build": "tsc",
-		"test": "jest lineSearch.test",
+		"test": "jest eigendecomposition.test",
+		"testall": "jest",
 		"testc": "jest --coverage"
 	},
 	"devDependencies": {

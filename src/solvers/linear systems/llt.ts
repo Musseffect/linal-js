@@ -1,16 +1,14 @@
-//todo:
-
-import Matrix from "../../denseMatrix";
-import { DiagonalType, TriMatrixType, TriMatrixView } from "../../triMatrixView";
+import Matrix from "../../dense/denseMatrix";
+import { TriMatrixType, TriMatrixView } from "../../dense/matrixView";
 import { assert, near, SmallestTolerance, SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { NotPositiveDefiniteMatrixException } from "./exceptions";
 
 const SolverName = "'Cholesky'";
 
 export default class LLT {
     llt: Matrix | null = null;
-    // todo: replace with TriangularMatrix or SymmetricMatrix
+    // todo (NI): replace with TriangularMatrix or SymmetricMatrix
     A: Matrix | null = null;
     _tolerance: number = SmallestTolerance;
     constructor(A: Matrix | null = null, tolerance: number = SmallestTolerance) {
@@ -33,6 +31,8 @@ export default class LLT {
                 for (let k = 0; k < column; ++k)
                     value -= llt.get(row, k) * llt.get(column, k);
                 if (row == column) {
+                    if (value < 0)
+                        return;
                     value = Math.sqrt(value);
                     llt.set(row, row, value);
                 }
@@ -46,10 +46,10 @@ export default class LLT {
         this.llt = llt;
     };
     get L(): TriMatrixView {
-        return new TriMatrixView(this.llt, TriMatrixType.lower, DiagonalType.Unit);
+        return new TriMatrixView(this.llt, TriMatrixType.lower);
     }
     get LT(): TriMatrixView {
-        return new TriMatrixView(this.llt, TriMatrixType.upper, DiagonalType.Existing);
+        return new TriMatrixView(this.llt, TriMatrixType.upper);
     }
     get LLT(): Matrix {
         return this.llt;

@@ -1,7 +1,7 @@
 import axisAngle from "../axisAngle";
 import quat from "../quat";
 import { radians } from "../utils";
-import vec3 from "../vec3";
+import vec3 from "../dense/vec3";
 
 test('Quaternion basic operations', () => {
     let axisAngleRotation = new axisAngle(new vec3(1., 2., -3.), radians(70));

@@ -1,6 +1,6 @@
-import Matrix from "../../../../denseMatrix";
-import { assert, SmallTolerance } from "../../../../utils";
-import Vector from "../../../../vector";
+import Matrix from "../../../../dense/denseMatrix";
+import { assert, assertFail, SmallTolerance } from "../../../../utils";
+import Vector from "../../../../dense/vector";
 import { LineSearch, LineSearchProblem } from "../../../line search/lineSearch";
 import { ConvergenseFailureException } from "../../../linear systems/exceptions";
 import FullPivLU from "../../../linear systems/fullPivLU";
@@ -43,7 +43,8 @@ class Solver {
                 return Matrix.postMulVec(calcJacobian(x), f(x));
             },
             hessian: (x: Vector): Matrix => {
-                throw new Error("Not implemented");
+                assertFail("shouldn't be called");
+                return Matrix.empty(1, 1);
             }
         };
         let lineSearch: LineSearch | null = params.lineSearchAlgo ? createLineSearch(params.lineSearchAlgo, lineSearchProblem) : null;
@@ -55,7 +56,8 @@ class Solver {
             if (J.lInfNorm() < params.fDotTolAbs)
                 return x;
             try {
-                // TODO: use QR with column pivoting
+                // TODO: use QR with column pivoting for non square and
+                // non-full rank systems
                 let dx = PartialPivLU.solve(J, fVec);
                 let step = params.step;
                 if (lineSearch)

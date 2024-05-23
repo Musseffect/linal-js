@@ -1,6 +1,6 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { LineSearch, LineSearchProblem } from "./lineSearch";
 
 /**
@@ -48,9 +48,9 @@ class SearchAlongDirectionProblem extends Problem1D {
         // df/dx = df/darg * dir
         return Vector.dot(this.problem.grad(this.arg(x)), this.direction);
     }
+    // f(x0 + x * dir)
+    // d^2f/dx^2 = (d^2f/darg * dir) * dir
     dfdxdx(x: number): number {
-        let arg = Vector.scale(this.direction, x).addSelf(this.x0);
-        // todo: check the formula
         return Vector.dot(Matrix.postMulVec(this.problem.hessian(this.arg(x)), this.direction), this.direction);
     }
 }

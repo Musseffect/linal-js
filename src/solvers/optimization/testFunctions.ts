@@ -1,7 +1,7 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { forwardDifference, secondOrderDifference } from "../../numericalDifferentiation";
 import { assert, SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 
 // https://en.wikipedia.org/wiki/Test_functions_for_optimization
 export interface OptimizationTestFunction {

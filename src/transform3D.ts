@@ -1,8 +1,8 @@
-import mat4 from "./mat4";
+import mat4 from "./dense/mat4";
 import quat from "./quat";
 import { assert, near } from "./utils";
-import vec2 from "./vec2";
-import vec3 from "./vec3";
+import vec2 from "./dense/vec2";
+import vec3 from "./dense/vec3";
 
 export default class transform3D {
     translation: vec3;

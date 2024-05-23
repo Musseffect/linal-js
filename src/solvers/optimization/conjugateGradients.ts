@@ -1,5 +1,5 @@
 import { SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { ConvergenseFailureException } from "../linear systems/exceptions";
 import { Bounds, OptimizationProblem } from "./optimizationProblem";
 import { LineSearchAlgorithm, initializeLineSearch } from "./utils";

@@ -1,5 +1,5 @@
-import Matrix from "../../denseMatrix";
-import Vector from "../../vector";
+import Matrix from "../../dense/denseMatrix";
+import Vector from "../../dense/vector";
 import { LineSearchProblem } from "./lineSearch";
 import { ArmijoBacktracking } from "./armijo";
 import WolfeLineSearch from "./wolfe";

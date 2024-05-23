@@ -1,16 +1,16 @@
 import axisAngle from "./axisAngle";
-import mat2 from "./mat2";
-import mat3 from "./mat3";
-import mat4 from "./mat4";
-import Matrix from "./denseMatrix";
+import mat2 from "./dense/mat2";
+import mat3 from "./dense/mat3";
+import mat4 from "./dense/mat4";
+import Matrix from "./dense/denseMatrix";
 import quat from "./quat";
 import transform3D from "./transform3D";
 import transform2D from "./transform2D";
-import vec2 from "./vec2";
-import complex from "./complex";
-import vec3 from "./vec3";
-import vec4 from "./vec4";
-import Vector from "./vector";
+import vec2 from "./dense/vec2";
+import { complex } from "./complex";
+import vec3 from "./dense/vec3";
+import vec4 from "./dense/vec4";
+import Vector from "./dense/vector";
 import {
     Tolerance,
     SmallTolerance,

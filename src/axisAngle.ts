@@ -1,6 +1,6 @@
-import mat3 from "./mat3";
+import mat3 from "./dense/mat3";
 import { Tolerance, near } from "./utils";
-import vec3 from "./vec3";
+import vec3 from "./dense/vec3";
 
 export default class axisAngle {
     axis: vec3;

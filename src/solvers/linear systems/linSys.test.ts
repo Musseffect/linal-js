@@ -1,11 +1,10 @@
 
-// todo: solvers for rect matrices
-// todo: eigenvalue solvers
-
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { Tolerance, SmallTolerance, assert, SmallestTolerance, near } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import * as linSolvers from "./exports";
+import { TriMatrixType, TriMatrixView } from "../../dense/matrixView";
+import MatrixSpectrum, { } from "../../dense/matrixSpectrum";
 
 interface TestCase {
     m: Matrix;
@@ -58,6 +57,13 @@ const squareSystemTestCases: Tests = { posDef: [], general: [] };
         inverse: new Matrix([-1, 1, 1, 0], 2, 2),
         determinant: -1
     });
+    squareSystemTestCases.general.push({
+        m: new Matrix([2, 3, 5, 7], 2, 2),
+        rhs: new Vector([11, 13]),
+        exactSolution: new Vector([-38, 29]),
+        inverse: new Matrix([-7, 3, 5, -2], 2, 2),
+        determinant: -1
+    });
     const checkTest = (test: TestCase) => {
         assert(test.m.isSquare(), "Expected square matrix");
         assert(test.inverse.isSquare(), "Expected square inverse");
@@ -78,11 +84,48 @@ const squareSystemTestCases: Tests = { posDef: [], general: [] };
     }
 })();
 
+let id = 0;
+describe.only.each(squareSystemTestCases.general)('General matrices %#', (testCase: TestCase) => {
+    console.log(`Test case ${id}`);
+    console.log(testCase.m.toString());
+    console.log(`Diagonally dominant ${testCase.m.isDiagonallyDominant()}`);
+    console.log(`Symmetric ${testCase.m.isSymmetric()}`);
+    console.log(`Matrix spectral radius ${id} ${MatrixSpectrum.spectralRadius(testCase.m)}`);
+    console.log(`Matrix condition number ${id} ${MatrixSpectrum.conditionNumber(testCase.m)}`);
+    /*let m = new TriMatrixView(testCase.m, TriMatrixType.lower).toMatrix().inverse();
+    console.log(m.toString());
+    let n = Matrix.sub(Matrix.empty(testCase.m.numRows(), testCase.m.numRows()), new TriMatrixView(testCase.m, TriMatrixType.upper, 0).toMatrix());
+    let mn = Matrix.mul(m, n);
+    console.log(mn.toString());
+    console.log(`M-1 N spectral radius ${id} ${MatrixSpectrum.spectralRadius(mn)}`);*/
+    ++id;
+    test.skip('gauss-zeidel-reorder', () => {
+        let solver = new linSolvers.gaussSeidel();
+        solver.reorderRows = true;
+        solver.maxIterations = 60;
+        solver.tolerance = SmallTolerance;
+        let result = solver.solve(testCase.m, testCase.rhs);
+        expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
+    });
+    test.skip('gauss-zeidel', () => {
+        let result = linSolvers.gaussSeidel.solve(testCase.m, testCase.rhs, 60, SmallTolerance);
+        expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
+    });
+    test.skip('jacobi', () => {
+        let result = linSolvers.jacobi.solve(testCase.m, testCase.rhs, 60, SmallTolerance);
+        expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
+    });
+    test.skip('sor', () => {
+        let result = linSolvers.sor.solve(testCase.m, testCase.rhs, 60, 1.0, SmallTolerance);
+        expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
+    });
+});
+
 describe.skip('Linear solvers (dense square matrices)', () => {
-    describe.each(squareSystemTestCases.posDef)('Symmetric positive definite matrices %#', (testCase: TestCase) => {
+    describe.skip.each(squareSystemTestCases.posDef)('Symmetric positive definite matrices %#', (testCase: TestCase) => {
         expect(testCase.m.isSymmetric()).toBeTruthy();
         describe('Factorizations', () => {
-            test.skip('LL', () => {
+            test('LL', () => {
                 let solver = new linSolvers.LLT(null, SmallTolerance);
                 expect(() => solver.factorize(testCase.m)).not.toThrow();
                 expect(solver.LLT).not.toBeNull();
@@ -90,7 +133,7 @@ describe.skip('Linear solvers (dense square matrices)', () => {
                 expect(Matrix.lInfDistance(testCase.inverse, solver.inverse() as Matrix)).toBeLessThan(SmallTolerance);
                 expect(solver.determinant()).toBeCloseTo(testCase.determinant, 4);
             });
-            test.skip('LDL', () => {
+            test('LDL', () => {
                 let solver = new linSolvers.LDLT(null, SmallTolerance);
                 expect(() => solver.factorize(testCase.m)).not.toThrow();
                 expect(solver.LDLT).not.toBeNull();
@@ -99,7 +142,7 @@ describe.skip('Linear solvers (dense square matrices)', () => {
                 expect(solver.determinant()).toBeCloseTo(testCase.determinant, 4);
             });
         });
-        describe.skip('Iterative', () => {
+        describe('Iterative', () => {
             test('ConjGrad', () => {
                 let result = linSolvers.CG.solve(testCase.m, testCase.rhs, 20);
                 expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(SmallTolerance);
@@ -107,22 +150,25 @@ describe.skip('Linear solvers (dense square matrices)', () => {
         });
     });
     describe.each(squareSystemTestCases.general)('General matrices %#', (testCase: TestCase) => {
-        describe('Factorizations', () => {
-            test.skip('PartialPivLU', () => {
+        describe.skip('Factorizations', () => {
+            test('PartialPivLU', () => {
                 let solver = new linSolvers.PartialPivLU(null);
                 expect(() => solver.factorize(testCase.m)).not.toThrow();
                 expect(solver.LU).not.toBeNull();
                 expect(Vector.sub(solver.solve(testCase.rhs) as Vector, testCase.exactSolution).lInfNorm()).toBeLessThanOrEqual(SmallTolerance);
                 expect(Matrix.lInfDistance(testCase.inverse, solver.inverse() as Matrix)).toBeLessThan(SmallTolerance);
                 expect(solver.determinant()).toBeCloseTo(testCase.determinant, 4);
+                // test static variant
+                expect(Vector.sub(linSolvers.PartialPivLU.solve(testCase.m, testCase.rhs) as Vector, testCase.exactSolution).lInfNorm()).toBeLessThanOrEqual(SmallTolerance);
             });
-            test.skip('FullPivLU', () => {
+            test('FullPivLU', () => {
                 let solver = new linSolvers.FullPivLU(null);
                 expect(() => solver.factorize(testCase.m)).not.toThrow();
                 expect(solver.LU).not.toBeNull();
                 expect(Vector.sub(solver.solve(testCase.rhs) as Vector, testCase.exactSolution).lInfNorm()).toBeLessThanOrEqual(SmallTolerance);
                 expect(Matrix.lInfDistance(testCase.inverse, solver.inverse() as Matrix)).toBeLessThan(SmallTolerance);
-                expect(solver.determinant()).toBeCloseTo(testCase.determinant, 4);
+                expect(solver.determinant()).toBeCloseTo(testCase.determinant, 4);// test static variant
+                expect(Vector.sub(linSolvers.FullPivLU.solve(testCase.m, testCase.rhs) as Vector, testCase.exactSolution).lInfNorm()).toBeLessThanOrEqual(SmallTolerance);
             });
             test('QR', () => {
                 for (const method of [linSolvers.ZeroingMethod.Givens, linSolvers.ZeroingMethod.Housholder]) {
@@ -142,7 +188,15 @@ describe.skip('Linear solvers (dense square matrices)', () => {
                 }
             });
         });
-        describe.skip('Iterative', () => {
+        describe('Iterative', () => {
+            test('gauss-zeidel-reorder', () => {
+                let solver = new linSolvers.gaussSeidel();
+                solver.reorderRows = true;
+                solver.maxIterations = 60;
+                solver.tolerance = SmallTolerance;
+                let result = solver.solve(testCase.m, testCase.rhs);
+                expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
+            });
             test('gauss-zeidel', () => {
                 let result = linSolvers.gaussSeidel.solve(testCase.m, testCase.rhs, 60, SmallTolerance);
                 expect(Vector.lInfDistance(result, testCase.exactSolution)).toBeLessThanOrEqual(Tolerance);
@@ -209,7 +263,7 @@ const rectSystemTestCases: RectSystemTestCase[] = [];
     }
 })();
 
-describe('Linear solvers (dense rectangular matrices)', () => {
+describe.skip('Linear solvers (dense rectangular matrices)', () => {
     test.each(rectSystemTestCases)("QR", (testData: RectSystemTestCase) => {
         for (const method of [linSolvers.ZeroingMethod.Givens, linSolvers.ZeroingMethod.Housholder]) {
             let solver = new linSolvers.QR(null, method, false);

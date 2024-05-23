@@ -1,6 +1,6 @@
-import mat3 from "./mat3";
+import mat3 from "./dense/mat3";
 import { assert, near } from "./utils";
-import vec2 from "./vec2";
+import vec2 from "./dense/vec2";
 
 export default class transform2D {
     translation: vec2;

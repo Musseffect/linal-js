@@ -1,7 +1,7 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert, SmallTolerance } from "../../utils";
-import Vector from "../../vector";
-import vector from "../../vector";
+import Vector from "../../dense/vector";
+import vector from "../../dense/vector";
 import { ConvergenseFailureException } from "./exceptions";
 
 const SolverName = "'Jacobi'";

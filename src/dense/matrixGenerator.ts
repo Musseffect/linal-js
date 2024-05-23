@@ -1,5 +1,5 @@
 import { complex } from "../complex";
-import Matrix from "../denseMatrix";
+import Matrix from "./denseMatrix";
 import RandomNumberGenerator from "../random/generator";
 import { randomNormalDistr } from "../random/utils";
 import { QR, ZeroingMethod } from "../solvers/linear systems/qr";
@@ -13,8 +13,6 @@ export enum SignType {
     Ignore
 }
 
-
-// todo: test
 export class MatrixGenerator {
     protected generator: RandomNumberGenerator;
     constructor(generator: RandomNumberGenerator) {
@@ -111,7 +109,7 @@ export class MatrixGenerator {
                 counter++;
             }
         }
-        let Q = this.randomOrthogonal(eigenvalues.length);
+        let Q = this.randomOrthogonal(size);
         return Matrix.mul(Matrix.mul(Q, M), Q.transpose());
     }
 

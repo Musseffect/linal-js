@@ -1,5 +1,5 @@
-import Matrix from "../../denseMatrix";
-import Vector from "../../vector";
+import Matrix from "../../dense/denseMatrix";
+import Vector from "../../dense/vector";
 
 export interface ScalarFunction {
     f(x: number): number;

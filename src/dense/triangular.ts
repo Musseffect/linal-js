@@ -2,7 +2,7 @@
 
 // support both triangular and hessenberg
 
-import { DiagonalType } from "../triMatrixView";
+import { DiagonalType } from "./matrixView";
 
 class TriangularMatrix {
     _shift: number;

@@ -1,8 +1,8 @@
 import axisAngle from "./axisAngle";
-import mat3 from "./mat3";
-import mat4 from "./mat4";
+import mat3 from "./dense/mat3";
+import mat4 from "./dense/mat4";
 import { Tolerance, SmallTolerance, SmallestTolerance } from "./utils";
-import vec3 from "./vec3";
+import vec3 from "./dense/vec3";
 
 export default class quat {
     v: vec3;

@@ -1,5 +1,5 @@
 import { SmallestTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { BacktrackingLineSearch, LineSearch } from "./lineSearch";
 
 

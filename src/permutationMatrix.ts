@@ -1,10 +1,11 @@
-import Matrix from "./denseMatrix";
+import Matrix from "./dense/denseMatrix";
 import RandomNumberGenerator from "./random/generator";
 import JSGenerator from "./random/js";
-import { SparseMatrixCSR } from "./sparseMatrix";
-import Triplet from "./triplet";
+import { SparseMatrixCSR, SparseMatrixRowIterator } from "./sparse/sparseMatrix";
+import Triplet from "./sparse/triplet";
 import { assert, swap } from "./utils";
-import Vector from "./vector";
+import Vector from "./dense/vector";
+import { SparseVector } from "./sparse/sparseVector";
 
 export enum PermutationType {
     Row = 1,
@@ -78,7 +79,7 @@ export class PermutationMatrix {
     get type() {
         return this._type;
     }
-    protected set type(value: PermutationType) {
+    set type(value: PermutationType) {
         this._type = value;
     }
     swap(i: number, j: number) {
@@ -95,7 +96,6 @@ export class PermutationMatrix {
         assert(index != -1, "Invalid permutation");
         return index;
     }
-    // todo: test
     determinant(): number {
         // calc number of pairs (i, j) where i < j and p(i) > p(j)
         let d = 0;
@@ -106,6 +106,9 @@ export class PermutationMatrix {
             }
         }
         return d & 1 ? -1 : 1;
+    }
+    at(idx: number): number {
+        return this.permutations[idx];
     }
     isValid(): boolean {
         let values = new Array(this.permutations.length);
@@ -151,20 +154,57 @@ export class PermutationMatrix {
         }
         return result;
     }
+    permuteSparseMatrix(m: SparseMatrixCSR): SparseMatrixCSR {
+        let nonZeroElements: number[] = [];
+        let innerIndices: number[] = [];
+        let outerStarts: number[] = [0];
+        if (this.type == PermutationType.Row) {
+            assert(this.permutations.length == m.numRows(), "Number of rows doesn't match permutation length");
+            for (let i = 0; i < this.permutations.length; ++i) {
+                let row = this.permutations[i];
+                let it = new SparseMatrixRowIterator(m, row);
+                while (!it.isDone()) {
+                    const { colIdx, value } = it.advance();
+                    innerIndices.push(colIdx);
+                    nonZeroElements.push(value);
+                }
+                outerStarts.push(innerIndices.length);
+            }
+        } else {
+            assert(this.permutations.length == m.numCols(), "Number of cols doesn't match permutation length");
+            for (let row = 0; row < m.numRows(); ++row) {
+                let start = m.outerStart(row);
+                let end = m.outerStart(row + 1);
+                if (end == start) {
+                    outerStarts.push(innerIndices.length);
+                    continue;
+                }
+                let permutedElements = SparseVector.empty(m.numCols());
+                for (let i = start; i < end; ++i)
+                    permutedElements.set(this.findIndexByValue(m.innerIndex(i)), m.nonZeroElement(i));
+                for (const { index, value } of permutedElements.elements) {
+                    innerIndices.push(index);
+                    nonZeroElements.push(value);
+                }
+                outerStarts.push(innerIndices.length);
+            }
+        }
+        return new SparseMatrixCSR(m.numRows(), m.numCols(), nonZeroElements, innerIndices, outerStarts);
+    }
     permuteIndex(row: number, column: number) {
-        if (this.type)
+        if (this.type == PermutationType.Row)
             row = this.findIndexByValue(row);
         else column = this.findIndexByValue(column);
         return { row, column };
     }
     unpermuteIndex(row: number, column: number) {
-        if (this.type)
+        if (this.type == PermutationType.Row)
             row = this.permutations[row];
         else column = this.permutations[column];
         return { row, column };
     }
     get(row: number, column: number): number {
-        if (this.type) {
+        if (this.type == PermutationType.Row) {
             if (column == this.permutations[row]) return 1;
         } else {
             if (row == this.permutations[column]) return 1;
@@ -175,7 +215,7 @@ export class PermutationMatrix {
         let m: Matrix = Matrix.empty(this.permutations.length, this.permutations.length);
         for (let i = 0; i < this.permutations.length; ++i) {
             const index = this.permutations[i];
-            if (this.type)
+            if (this.type == PermutationType.Row)
                 m.set(i, index, 1);
             else
                 m.set(index, i, 1)
@@ -186,7 +226,7 @@ export class PermutationMatrix {
         let triplets: Triplet[] = [];
         for (let i = 0; i < this.permutations.length; ++i) {
             const index = this.permutations[i];
-            if (this.type)
+            if (this.type == PermutationType.Row)
                 triplets.push({ row: i, column: index, value: 1 });
             else
                 triplets.push({ row: index, column: i, value: 1 });
@@ -194,6 +234,6 @@ export class PermutationMatrix {
         return triplets;
     }
     toSparseMatrix(): SparseMatrixCSR {
-        return SparseMatrixCSR.fromTriplets(this.toTriplets(), this.permutations.length, this.permutations.length);
+        return SparseMatrixCSR.fromTriplets(this.permutations.length, this.permutations.length, this.toTriplets());
     }
 }

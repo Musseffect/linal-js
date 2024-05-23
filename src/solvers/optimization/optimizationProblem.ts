@@ -1,7 +1,7 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { forwardDifference, secondOrderDifference } from "../../numericalDifferentiation";
 import { SmallTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 
 export abstract class OptimizationProblem {
     initialPoint: Vector;

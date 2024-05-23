@@ -1,6 +1,6 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assertFail } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { ArmijoBacktracking } from "../line search/armijo";
 import GoldsteinLineSearch from "../line search/goldstein";
 import { LineSearch, LineSearchProblem } from "../line search/lineSearch";
@@ -12,7 +12,6 @@ export enum LineSearchAlgorithm {
     Wolf = 0,
     Armijo = 1,
     Goldstein = 2
-    // todo: add more
 };
 
 class OptimizationLineSearchProblemAdapter implements LineSearchProblem {

@@ -1,8 +1,6 @@
-// todo
-
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { assert, assertFail } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { givens, applyGivensFromLeft, applyGivensFromRight, applyTransposeGivensFromRight } from "./givensRotation";
 import { applyHouseholderFromLeft, applyHouseholderFromRight, calcHouseholderVectorCol } from "./hausholderReflection";
 
@@ -27,6 +25,7 @@ export class OrthogonalDecomposition {
     _zeroingMethod: ZeroingMethod;
     _makeCompact: boolean;
     _type: OrthogonalDecompositionType;
+    _determinantSign: number;
 
     constructor(A: Matrix | null, zeroingMethod: ZeroingMethod = ZeroingMethod.Housholder, makeCompact: boolean = false, type: OrthogonalDecompositionType) {
         this._makeCompact = makeCompact;
@@ -34,8 +33,109 @@ export class OrthogonalDecomposition {
         this._type = type;
         this.factorize(A);
     }
-    factorize(A: Matrix) {
+    get Q(): Matrix {
+        return this.q;
+    }
+    get T(): Matrix {
+        return this.t;
+    }
+    private makeQR(A: Matrix) {
+        let r: Matrix = A.clone();
+        if (this.A.numCols() > this.A.numRows())
+            r.transposeInPlace();
+        let q: Matrix = Matrix.identity(r.numRows());
+        if (this._zeroingMethod == ZeroingMethod.Housholder) {
+            let numOps = 0;
+            for (let col = 0; col < this.A.numCols(); ++col) {
+                // numRows cannot be less than numCols, when numRows == numCols last column should be skipped
+                if (this.A.numRows() == col + 1) continue;
+                numOps++;
+                let v = calcHouseholderVectorCol(r, col, col);
+                applyHouseholderFromLeft(v, r, col);
+                applyHouseholderFromRight(v, q, col);
+            }
+            this._determinantSign = (numOps & 1 ? -1.0 : 1.0);
+
+        } else if (this._zeroingMethod == ZeroingMethod.Givens) {
+            for (let j = 0; j != r.numCols(); ++j) {
+                for (let i = r.numRows() - 1; i > j; --i) {
+                    let a = r.get(j, j);
+                    let b = r.get(i, j);
+                    let givensCoeffs = givens(a, b);
+                    applyGivensFromLeft(r, givensCoeffs, i, j);
+                    applyTransposeGivensFromRight(q, givensCoeffs, i, j);
+                }
+            }
+            this._determinantSign = 1.0;
+        }
+        if (this._makeCompact) {
+            r.shrinkRows(r.numCols());
+            q.shrinkCols(r.numCols());
+        }
+        this.q = q;
+        this.t = r;
+    }
+    private makeRQ(A: Matrix) {
+        let r: Matrix = A.clone();
+        if (this.A.numRows() > this.A.numCols())
+            r.transposeInPlace();
+        let q: Matrix = Matrix.identity(r.numCols());
         throw new Error("Not implemented");
+        if (this._zeroingMethod == ZeroingMethod.Housholder) {
+
+
+
+        } else if (this._zeroingMethod == ZeroingMethod.Givens) {
+
+        }
+        if (this._makeCompact) {
+            r.shrinkCols(r.numRows());
+            q.shrinkRows(r.numRows());
+        }
+        this.q = q;
+        this.t = r;
+    }
+    private makeQL(A: Matrix) {
+        let q: Matrix;
+        let l: Matrix;
+        throw new Error("Not implemented");
+        if (this._zeroingMethod == ZeroingMethod.Housholder) {
+
+
+
+        } else if (this._zeroingMethod == ZeroingMethod.Givens) {
+
+        }
+        this.q = q;
+        this.t = l;
+    }
+    private makeLQ(A: Matrix) {
+        let q: Matrix;
+        let l: Matrix;
+        throw new Error("Not implemented");
+        if (this._zeroingMethod == ZeroingMethod.Housholder) {
+
+
+
+        } else if (this._zeroingMethod == ZeroingMethod.Givens) {
+
+        }
+        this.q = q;
+        this.t = l;
+    }
+    factorize(A: Matrix) {
+        this.A = A;
+        if (this.A == null) return;
+        switch (this._type) {
+            case OrthogonalDecompositionType.LQ:
+                this.makeLQ(A); break;
+            case OrthogonalDecompositionType.QL:
+                this.makeQL(A); break;
+            case OrthogonalDecompositionType.QR:
+                this.makeQR(A); break;
+            case OrthogonalDecompositionType.RQ:
+                this.makeRQ(A); break;
+        }
     }
     set type(value: OrthogonalDecompositionType) {
         this._type = value;
@@ -87,6 +187,7 @@ export class QR {
             /*this.r.set(col, col, v.get(0));
             for (let row = col + 1; row < this.A.numRows(); ++row)
                 this.r.set(row, col, 0.0);*/
+
             // R = (Q3Q2Q1)^A = QT*A
             // QT = Q3(Q2(Q1*I))
             // Q = ((I*Q1)Q2)Q3)
@@ -226,4 +327,39 @@ export class QR {
     }
 }
 
-// todo: column pivoting, full pivoting
+// todo (NI): column pivoting, full pivoting
+
+/**
+class PivotedQR
+{
+    p:PermutationMatrix = null;
+    q:Matrix = null;
+    r:Matrix = null;
+    get Q() {
+        return this.q;
+    }
+    get R() {
+        return this.r;
+    }
+    get P() {
+        return this.p;
+    }
+    constructor(A:Matrix) {
+        this.factorize(A);
+    }
+    factorize(A:Matrix) {
+        this.p = null;
+        if (A == undefined) return;
+        let r = A.clone();
+    }
+    determinant(): number {
+
+    }
+    solve(rhs:Vector):Vector {
+
+    }
+    inverse():Matrix {
+        
+    }
+}
+ */

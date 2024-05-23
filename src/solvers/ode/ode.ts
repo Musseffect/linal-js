@@ -1,6 +1,6 @@
-import Matrix from "../../denseMatrix";
+import Matrix from "../../dense/denseMatrix";
 import { lerp } from "../../utils";
-import vector from "../../vector";
+import vector from "../../dense/vector";
 
 export interface eode {
     f(x: vector, t: number): vector;

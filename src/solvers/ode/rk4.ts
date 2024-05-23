@@ -1,4 +1,4 @@
-import vector from "../../vector";
+import vector from "../../dense/vector";
 import { eode, odeSolver, odeState } from "./ode";
 
 

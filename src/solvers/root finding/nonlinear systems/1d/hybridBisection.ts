@@ -12,7 +12,7 @@ export default class HybridBisection {
             let x = (a + b) * 0.5;
             let fx = f(x);
             let dfx = df(x);
-            // todo: figure out what to do with tolerance
+            // todo (NI): figure out what to do with tolerance
             if (Math.abs(dfx) > tolerance) {
                 let xn = x - fx / dfx;
                 if (xn > a + tolerance && xn < b - tolerance)

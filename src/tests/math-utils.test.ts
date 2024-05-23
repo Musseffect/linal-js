@@ -1,17 +1,17 @@
 import axisAngle from "../axisAngle";
-import mat3 from "../mat3";
-import mat4 from "../mat4";
+import mat3 from "../dense/mat3";
+import mat4 from "../dense/mat4";
 import quat from "../quat";
 import { assert, Tolerance, near, radians, SmallTolerance } from "../utils";
 import transform3D from "../transform3D";
 import transform2D from "../transform2D";
-import vec2 from "../vec2";
-import vec3 from "../vec3";
-import mat2 from "../mat2";
-import vec4 from "../vec4";
-import Matrix from "../denseMatrix";
+import vec2 from "../dense/vec2";
+import vec3 from "../dense/vec3";
+import mat2 from "../dense/mat2";
+import vec4 from "../dense/vec4";
+import Matrix from "../dense/denseMatrix";
 
-test.skip("Rotation conversions", () => {
+test("Rotation conversions", () => {
     let axisAngleRotation = new axisAngle(new vec3(1., 2., -3.), radians(70));
 
     let quatRotation = quat.fromAxisAngle(axisAngleRotation);
@@ -42,7 +42,7 @@ test.skip("Rotation conversions", () => {
     expect(Math.abs(vec3.dot(matRotation.axis(), new vec3(0, 1, 0)))).toBeCloseTo(1, 4);
 });
 
-test.skip("Rotations", () => {
+test("Rotations", () => {
     let axisAngleRotation = new axisAngle(new vec3(1., 2., -3.), radians(70));
     let trans = new transform3D(new vec3(-2, 3, 4.), quat.fromAxisAngle(axisAngleRotation), new vec3(1.2, -0.2, 0.4));
     let point = new vec3(0.3, -0.5, -0.2);
@@ -69,7 +69,7 @@ test.skip("Rotations", () => {
     expect(Matrix.near(matRotation.inverse(), matRotation.transpose(), Tolerance)).toBeTruthy();
 });
 
-test.skip("Transformations", () => {
+test("Transformations", () => {
     let axisAngleRotation = new axisAngle(new vec3(1., 2., -3.), radians(70));
     let translation3D = new vec3(-2, 3, 4.);
     let rotation3D = quat.fromAxisAngle(axisAngleRotation);
@@ -121,7 +121,7 @@ test.skip("Transformations", () => {
         inverseRigidTransform2D.transformPoint2D(point2D), Tolerance)).toBeTruthy();
 });
 
-test.skip("Transform components", () => {
+test("Transform components", () => {
     let point3D = new vec3(0.3, -0.5, -0.2);
     let axisAngleRotation = new axisAngle(new vec3(1., 2., -3.), radians(70));
     let translation3D = new vec3(-2, 3., 4.);

@@ -1,4 +1,4 @@
-import AbstractDenseMatrix from "../abstractDenseMatrix";
+import AbstractDenseMatrix from "./abstractDenseMatrix";
 import { assert } from "../utils";
 
 

@@ -1,7 +1,7 @@
 import axisAngle from "./axisAngle";
-import mat3 from "./mat3";
+import mat3 from "./dense/mat3";
 import quat from "./quat";
-import vec3 from "./vec3";
+import vec3 from "./dense/vec3";
 
 // axis that should correspond to yaw, pitch and roll
 export enum Axis {

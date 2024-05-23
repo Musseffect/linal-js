@@ -1,7 +1,7 @@
-import Matrix from "../../denseMatrix";
-import { DiagonalMatrixView, DiagonalType, TriMatrixType, TriMatrixView } from "../../triMatrixView";
+import Matrix from "../../dense/denseMatrix";
+import { DiagonalMatrixView, TriMatrixType, TriMatrixView } from "../../dense/matrixView";
 import { SmallestTolerance, assert } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 
 
 class TriangularMatrix {
@@ -48,10 +48,9 @@ class TriangularMatrix {
     }
 }
 
-// todo: optimize for large matrices
-
-// todo: pivoting
-// todo: block LDLT for indefinite decomposition and LTLT
+// todo (NI): optimize for large matrices
+// todo (NI): pivoting
+// todo (NI): block LDLT for indefinite decomposition and LTLT
 export default class LDLT {
     ldlt: Matrix = null;
     A: Matrix = null;
@@ -136,10 +135,10 @@ export default class LDLT {
         return this.ldlt;
     }
     get L(): TriMatrixView {
-        return new TriMatrixView(this.ldlt, TriMatrixType.lower, DiagonalType.Unit);
+        return new TriMatrixView(this.ldlt, TriMatrixType.lower);
     }
     get LT(): TriMatrixView {
-        return new TriMatrixView(this.ldlt, TriMatrixType.upper, DiagonalType.Unit);
+        return new TriMatrixView(this.ldlt, TriMatrixType.upper);
     }
     get D(): DiagonalMatrixView {
         return new DiagonalMatrixView(this.ldlt);

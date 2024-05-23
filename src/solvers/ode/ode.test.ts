@@ -1,5 +1,5 @@
 
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import * as ode from "./odeExports";
 
 

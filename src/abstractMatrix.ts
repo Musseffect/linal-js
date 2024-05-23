@@ -1,4 +1,6 @@
 
+
+
 export default abstract class AbstractMatrix {
     protected _numRows: number;
     protected _numCols: number;

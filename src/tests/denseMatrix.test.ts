@@ -1,18 +1,18 @@
-import Matrix from "../denseMatrix";
-import mat2 from "../mat2";
-import mat3 from "../mat3";
-import mat4 from "../mat4";
-import Triplet from "../triplet";
+import Matrix from "../dense/denseMatrix";
+import mat2 from "../dense/mat2";
+import mat3 from "../dense/mat3";
+import mat4 from "../dense/mat4";
+import Triplet from "../sparse/triplet";
 import { Tolerance, SmallTolerance, assert } from "../utils";
-import vec2 from "../vec2";
-import vec3 from "../vec3";
-import vec4 from "../vec4";
-import Vector from "../vector";
+import vec2 from "../dense/vec2";
+import vec3 from "../dense/vec3";
+import vec4 from "../dense/vec4";
+import Vector from "../dense/vector";
 
 describe('Dense tests', () => {
     const singularTrivialMatrixTriplets: Triplet[] = [{ row: 1, column: 1, value: 1 },
     { row: 2, column: 2, value: 1 }, { row: 0, column: 0, value: 2 }, { row: 3, column: 3, value: 1 }, { row: 5, column: 5, value: 1 }];
-    const singularDenseTrivialMatrix = Matrix.fromTriplets(singularTrivialMatrixTriplets, 6, 6);
+    const singularDenseTrivialMatrix = Matrix.fromTriplets(6, 6, singularTrivialMatrixTriplets);
 
     const singularNonTrivialMatrixTriplets: Triplet[] = [
         { row: 0, column: 0, value: 1 },
@@ -35,13 +35,13 @@ describe('Dense tests', () => {
         { row: 5, column: 3, value: 2 },
         { row: 5, column: 5, value: 4 }
     ];
-    const singularDenseNonTrivialMatrix = Matrix.fromTriplets(singularNonTrivialMatrixTriplets, 6, 6);
+    const singularDenseNonTrivialMatrix = Matrix.fromTriplets(6, 6, singularNonTrivialMatrixTriplets);
 
     const nonSingularMatrixTriplets: Triplet[] = [{ row: 0, column: 0, value: 1 }, { row: 0, column: 2, value: 3 }, { row: 0, column: 4, value: 1 },
     { row: 1, column: 0, value: 2 }, { row: 1, column: 1, value: 2 }, { row: 1, column: 5, value: 2 }, { row: 2, column: 1, value: 2 }, { row: 2, column: 3, value: 1 }
         , { row: 2, column: 5, value: 3 }, { row: 3, column: 4, value: 4 }, { row: 4, column: 0, value: 3 }, { row: 4, column: 1, value: -3 }, { row: 4, column: 2, value: -1 }
         , { row: 4, column: 4, value: 2 }, { row: 5, column: 1, value: 2 }, { row: 5, column: 3, value: 2 }, { row: 5, column: 5, value: 4 }];
-    const nonSingularDenseMatrix = Matrix.fromTriplets(nonSingularMatrixTriplets, 6, 6);
+    const nonSingularDenseMatrix = Matrix.fromTriplets(6, 6, nonSingularMatrixTriplets);
     const nonSingularMatrixDeterminant = 144.0;
 
     describe('Matrix operations', () => {
@@ -82,8 +82,7 @@ describe('Dense tests', () => {
                 expect(matrix.determinant()).toBeCloseTo(expectedValue);
             }
         });
-        test.only('Inverse', () => {
-            // TODO: improve
+        test('Inverse', () => {
             let testMatrix = new mat4(
                 1, 3, 2, 4,
                 6, 8, 3, -2,
@@ -97,8 +96,15 @@ describe('Dense tests', () => {
             expect(Matrix.lInfDistance(testMatrix.inverse(), expectedMatrix)).toBeCloseTo(0);
             expect(Matrix.near(mat4.identity(), mat4.mul(testMatrix, testMatrix.inverse()), Tolerance)).toBeTruthy();
         });
+        test('Queries', () => {
+            let testMatrix = new Matrix(
+                [1, 3, 2, 4,
+                    6, 8, 3, -2,
+                    -5, 3, -2, 1,
+                    3, 4, 5, 2], 4, 4);
+            expect(testMatrix.trace()).toBeCloseTo(9);
+        });
         test('Transpose', () => {
-            // TODO: improve
             let testMatrix = new mat4(
                 1, 3, 2, 4,
                 6, 8, 3, -2,
@@ -226,12 +232,90 @@ describe('Dense tests', () => {
 
         // test non-trivial singular matrix
     });
-
-    test.skip('Triangular matrix', () => {
-        // todo
-        throw new Error("Not implemented");
+    test("Row/column manipulations", () => {
+        let mat = new Matrix([
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 9,
+            10, 11, 12,
+            13, 14, 15
+        ], 5, 3);
+        expect(Vector.lInfDistance(mat.diag(0), new Vector([1, 5, 9]))).toBeCloseTo(0);
+        expect(Vector.lInfDistance(mat.diag(-1), new Vector([2, 6]))).toBeCloseTo(0);
+        expect(Vector.lInfDistance(mat.diag(-2), new Vector([3]))).toBeCloseTo(0);
+        expect(Vector.lInfDistance(mat.diag(2), new Vector([7, 11, 15]))).toBeCloseTo(0);
+        expect(Vector.lInfDistance(mat.diag(3), new Vector([10, 14]))).toBeCloseTo(0);
+        expect(Vector.lInfDistance(mat.diag(4), new Vector([13]))).toBeCloseTo(0);
+        let row1 = mat.getRow(1);
+        expect(Vector.lInfDistance(row1, new Vector([4, 5, 6]))).toBeCloseTo(0);
+        let col2 = mat.getColumn(2);
+        expect(Vector.lInfDistance(col2, new Vector([3, 6, 9, 12, 15]))).toBeCloseTo(0);
+        let subCol2 = mat.subColumn(1, 2, 3);
+        expect(Vector.lInfDistance(subCol2, new Vector([6, 9, 12]))).toBeCloseTo(0);
+        let subRow1 = mat.subRow(1, 1, 2);
+        expect(Vector.lInfDistance(subRow1, new Vector([5, 6]))).toBeCloseTo(0);
+        mat.setSubRow(new Vector([3, 4]), 3, 1);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 9,
+            10, 3, 4,
+            13, 14, 15
+        ], 5, 3))).toBeCloseTo(0);
+        mat.setSubColumn(new Vector([1, 2]), 2, 2);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 1,
+            10, 3, 2,
+            13, 14, 15
+        ], 5, 3))).toBeCloseTo(0);
+        mat.setRow(3, new Vector([6, 5, 4]));
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 1,
+            6, 5, 4,
+            13, 14, 15
+        ], 5, 3))).toBeCloseTo(0);
+        mat.setColumn(1, new Vector([1, 1, 1, 1, 1]));
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            1, 1, 3,
+            4, 1, 6,
+            7, 1, 1,
+            6, 1, 4,
+            13, 1, 15
+        ], 5, 3))).toBeCloseTo(0);
+        mat.swapColumns(0, 2);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            3, 1, 1,
+            6, 1, 4,
+            1, 1, 7,
+            4, 1, 6,
+            15, 1, 13
+        ], 5, 3))).toBeCloseTo(0);
+        mat.swapRows(2, 4);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            3, 1, 1,
+            6, 1, 4,
+            15, 1, 13,
+            4, 1, 6,
+            1, 1, 7
+        ], 5, 3))).toBeCloseTo(0);
+        mat.shrinkCols(2);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            3, 1,
+            6, 1,
+            15, 1,
+            4, 1,
+            1, 1
+        ], 5, 2))).toBeCloseTo(0);
+        mat.shrinkRows(2);
+        expect(Matrix.lInfDistance(mat, new Matrix([
+            3, 1,
+            6, 1
+        ], 2, 2))).toBeCloseTo(0);
     });
-
 });
 
 describe('Classification tests', () => {

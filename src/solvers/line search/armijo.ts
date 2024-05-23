@@ -1,5 +1,5 @@
 import { assert, Tolerance, SmallTolerance, SmallestTolerance } from "../../utils";
-import Vector from "../../vector";
+import Vector from "../../dense/vector";
 import { BacktrackingLineSearch, LineSearch, LineSearchProblem } from "./lineSearch";
 
 export class ArmijoBacktracking extends BacktrackingLineSearch {
